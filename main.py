@@ -1,8 +1,6 @@
-import numpy
-import networkx as nx
 import random
 import time
-
+from collections import deque
 class Graph:
     def __init__(self):
         self.edges = {}
@@ -12,80 +10,88 @@ class Graph:
             self.edges[a] = []
         self.edges[a].append(b)
 
-    def bfs(self, startNode, toPrint = 0):
+    def bfs(self, startNode, toPrint=0):
         if startNode not in self.edges:
             return "No such Node"
         
-        visited = [startNode]
-        queue = [startNode]
+        visited = set()
+        queue = deque([startNode])
 
         while queue:
-            if queue[0] in self.edges:
-                for neighbor in self.edges[queue[0]]:
-                    if neighbor not in visited:
-                        visited.append(neighbor)
-                        queue.append(neighbor)
-            queue.pop(0)
-        
+            node = queue.popleft()
+            visited.add(node)
+            
+            for neighbor in self.edges[node]:
+                if neighbor not in visited:
+                    queue.append(neighbor)
+                    visited.add(neighbor)
         if toPrint == 1:
             print(visited)
 
     def dfs(self, startNode, toPrint = 0):
-        visited = [startNode]
-        stack = [startNode]
+        visited = set()
+        stack = deque([startNode])
+
         while stack:
-            node = stack.pop(0)
+            node = stack.pop()
+            if node in visited:
+                continue
             if node not in self.edges:
                 continue
-            for neighbor in self.edges[node]:
+            visited.add(node)
+            for neighbor in reversed(self.edges[node]):
                 if neighbor not in visited:
-                    stack.insert(0, neighbor)
-                    visited.append(neighbor)
+                    stack.append(neighbor)
+        
         if toPrint == 1:
-            print(visited)
+            print(node)
 
-def networkx_to_custom_graph(networkx_graph):
-    custom_graph = Graph()
-    for edge in networkx_graph.edges:
-        custom_graph.addEdge(edge[0], edge[1])
-    return custom_graph
-
-def generate_random_graph(num_nodes, edge_prob):
-    graph = nx.erdos_renyi_graph(num_nodes, edge_prob)
-    return networkx_to_custom_graph(graph)
-
-# graph = generate_random_graph(20, 0.5)
-# print(graph.edges)
-# graph.bfs(0)
-# graph.dfs(0)
+def generate_random_graph1(n):
+    g = Graph()
+    for i in range(n):
+        for j in range(i+1, n):
+            if random.random() < 1:
+                g.addEdge(i, j)
+                g.addEdge(j, i)
+    # print(g.graph)
+    return g
 
 gap = 100
-nr_nodes = 100
-
-bfs_result = []
-dfs_result = []
+max_nodes = 2000
+bfs_result = [0 for i in range(0, max_nodes//gap)]
+dfs_result = [0 for i in range(0, max_nodes//gap)]
 inputs = []
 
+nr_of_tests = 5
+k = nr_of_tests
+while k>0:
+    idx = 0
+    nr_nodes = 100
+    while nr_nodes<=max_nodes:
+        graph = generate_random_graph1(nr_nodes)
+        print(len(graph.edges))
+        start_node = random.randint(0, nr_nodes-1)
+        start_time = time.time()
+        graph.bfs(start_node)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        bfs_result[idx] += execution_time
 
-while nr_nodes<=2000:
-    graph = generate_random_graph(nr_nodes, 0.5)
-    start_node = random.randint(0, nr_nodes-1)
-    start_time = time.time()
-    graph.bfs(start_node)
-    end_time = time.time()
-    execution_time = end_time - start_time
-    bfs_result.append(f"{execution_time:.4f}")
+        start_time = time.time()
+        graph.dfs(start_node)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        dfs_result[idx] += execution_time
 
-    start_time = time.time()
-    graph.dfs(start_node)
-    end_time = time.time()
-    execution_time = end_time - start_time
-    dfs_result.append(f"{execution_time:.4f}")
+        # print(nr_nodes)
+        inputs.append(nr_nodes)
+        nr_nodes+=gap
+        idx+=1
 
+    k-=1
 
-    print(nr_nodes)
-    inputs.append(nr_nodes)
-    nr_nodes+=gap
+bfs_result = [i/nr_of_tests for i in bfs_result]
+dfs_result = [i/nr_of_tests for i in bfs_result]
 
 print(bfs_result)
 print(dfs_result)
@@ -93,11 +99,29 @@ print(inputs)
 
 length = len(bfs_result)
 
-for i in range(0, length):
+for i in range(0, 10):
     print(f"{inputs[i]} - {bfs_result[i]}")
 
-for i in range(0, length):
+for i in range(0, 10):
     print(f"{inputs[i]} - {dfs_result[i]}")
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+x = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000] 
+
+xpoints = np.array(x)
+ypoints = np.array(bfs_result)
+
+plt.plot(xpoints, ypoints, marker = 'o', label='BFS')
+ypoints = np.array(dfs_result)
+plt.plot(xpoints, ypoints, marker = 'o', label='DFS')
+plt.legend()
+plt.title("DFS")
+plt.xlabel("N")
+plt.ylabel("Time(s)")
+plt.grid()
+plt.show()
 
 # graph = Graph()
 
